@@ -85,8 +85,6 @@ rule all:
         "weighted-unifrac-emperor.qzv",
         "report/tex-tables/permanova-results.tex"
 
-# expand("raw-data/{file}.fastq.gz", file=FILES)
-
 rule permanova_to_latex:
     input:
         expand("results/{score}-matrix-permanova.txt",
@@ -171,7 +169,7 @@ rule export_diversity_scores:
 rule evaluate_diversity_phylogeny:
     input:
         feature_table_2500="feature-table-2500.qza",
-        rooted_tree="rooted-tree.qza"
+        rooted_tree="sepp-tree.qza"
     output:
         unweighted_unifrac="unweighted-unifrac-diversity.qza",
         weighted_unifrac="weighted-unifrac-diversity.qza"
@@ -190,27 +188,9 @@ rule evaluate_diversity_phylogeny:
         --o-distance-matrix {output.weighted_unifrac}
         """
 
-rule phylogeny:
-    input:
-        "asv-sequences.qza"
-    output:
-        aligned_rep_seqs="aligned-rep-seqs.qza",
-        masked_aligned_rep_seqs="masked-aligned-rep-seqs.qza",
-        unrooted_tree="unrooted-tree.qza",
-        rooted_tree="rooted-tree.qza"
-    shell:
-        """
-        qiime phylogeny align-to-tree-mafft-fasttree \
-        --i-sequences {input} \
-        --o-alignment {output.aligned_rep_seqs} \
-        --o-masked-alignment {output.masked_aligned_rep_seqs} \
-        --o-tree {output.unrooted_tree} \
-        --o-rooted-tree {output.rooted_tree}
-        """
-
 rule evaluate_diversity:
     input:
-        feature_table="feature-table.qza",
+        feature_table="sepp-filtered-table.qza",
         feature_table_2500="feature-table-2500.qza"
     output:
         bray_curtis="bray-curtis-diversity.qza",
@@ -222,12 +202,12 @@ rule evaluate_diversity:
             --i-table {input.feature_table_2500} \
             --p-metric jaccard \
             --o-distance-matrix {output.jaccard}
-        
+
         qiime diversity beta \
             --i-table {input.feature_table_2500} \
             --p-metric braycurtis \
             --o-distance-matrix {output.bray_curtis}
-        
+
         qiime diversity beta \
             --i-table {input.feature_table} \
             --p-metric aitchison \
@@ -236,7 +216,7 @@ rule evaluate_diversity:
 
 rule rarefy:
     input:
-        "feature-table.qza"
+        "sepp-filtered-table.qza"
     output:
         "feature-table-2500.qza"
     shell:
@@ -247,9 +227,65 @@ rule rarefy:
             --o-rarefied-table {output}
         """
 
+rule filter_sepp_features:
+    input:
+        table="taxonomy-filtered-table.qza",
+        tree="sepp-tree.qza"
+    output:
+        filtered_table="sepp-filtered-table.qza",
+        removed_table="sepp-removed-table.qza"
+    shell:
+        """
+        qiime fragment-insertion filter-features \
+            --i-table {input.table} \
+            --i-tree {input.tree} \
+            --o-filtered-table {output.filtered_table} \
+            --o-removed-table {output.removed_table}
+        """
+
+rule phylogeny:
+    input:
+        sequences="asv-sequences.qza",
+        sepp_reference="sepp-refs-silva-128.qza"
+    output:
+        tree="sepp-tree.qza",
+        placements="sepp-placements.qza"
+    shell:
+        """
+        qiime fragment-insertion sepp \
+            --i-representative-sequences {input.sequences} \
+            --i-reference-database {input.sepp_reference} \
+            --o-tree {output.tree} \
+            --o-placements {output.placements} \
+            --p-threads 8
+        """
+
+rule get_sepp_silva:
+    output:
+        "sepp-refs-silva-128.qza"
+    shell:
+        """
+        wget \
+        -O {output} \
+        "https://data.qiime2.org/classifiers/sepp-ref-dbs/sepp-refs-silva-128.qza"
+        """
+
+# rule rarefy:
+#     input:
+#         "feature-table.qza"
+#     output:
+#         "feature-table-2500.qza"
+#     shell:
+#         """
+#         qiime feature-table rarefy \
+#             --i-table {input} \
+#             --p-sampling-depth 2500 \
+#             --o-rarefied-table {output}
+#         """
+
 rule feature_table_summarize:
     input:
-        feature_table="feature-table.qza",
+        feature_table="taxonomy-filtered-table.qza",
         sample_metadata="sample-metadata.tsv"
     output:
         dir=directory("feature-table-summarize-output-dir"),
@@ -266,9 +302,8 @@ rule feature_table_summarize:
 rule taxonomy_visualization:
     input:
         taxonomy="taxonomy.qza",
-        feature_table="feature-table.qza",
+        feature_table="taxonomy-filtered-table.qza",
         sample_metadata="sample-metadata.tsv"
-
     output:
         taxonomy="taxonomy.qzv",
         taxa_barplot="taxa-barplot.qzv"
@@ -283,6 +318,22 @@ rule taxonomy_visualization:
             --i-taxonomy {input.taxonomy} \
             --m-metadata-file {input.sample_metadata} \
             --o-visualization {output.taxa_barplot}
+        """
+
+rule filter_taxonomy:
+    input:
+        table="feature-table.qza",
+        taxonomy="taxonomy.qza"
+    output:
+        "taxonomy-filtered-table.qza"
+    shell:
+        """
+        qiime taxa filter-table \
+            --i-table {input.table} \
+            --i-taxonomy {input.taxonomy} \
+            --p-include "p__" \
+            --p-mode contains \
+            --o-filtered-table {output}
         """
 
 rule classify_asvs:
