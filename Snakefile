@@ -601,7 +601,7 @@ rule download_fastq:
         mkdir -p data/raw/fastq logs/download-fastq
 
         curl -L --fail --retry 10 --retry-delay 5 --retry-all-errors --continue-at - \
-            -o {output} "{params.url} > {log} 2>&1"
+            -o {output} "{params.url}" > {log} 2>&1
         
         gzip -t {output} >> {log} 2>&1
         """
