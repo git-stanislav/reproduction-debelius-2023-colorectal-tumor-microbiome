@@ -108,7 +108,7 @@ rule tissue_significance:
         score="results/diversity/{file}-diversity.qza",
         sample_metadata="data/metadata/sample-metadata.tsv"
     output:
-        "{file}-tissue-significance.qzv"
+        "results/visualizations/{file}-tissue-significance.qzv"
     shell:
         """
         qiime diversity beta-group-significance \
