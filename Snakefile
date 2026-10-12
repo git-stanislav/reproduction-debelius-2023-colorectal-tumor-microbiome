@@ -13,13 +13,7 @@ def get_all_fastq_files(wildcards):
     checkpoint_output = checkpoints.download_fastq_urls.get().output[0]
     df = pd.read_csv(checkpoint_output, sep="\t")
 
-    accessions = (
-        df["run_accession"]
-        .dropna()
-        .astype(str)
-        .drop_duplicates()
-        .tolist()
-    )
+    accessions = df["run_accession"].dropna().astype(str).drop_duplicates().tolist()
 
     return [
         f"data/raw/fastq/{accession}_{read}.fastq.gz"
@@ -57,12 +51,13 @@ def get_fastq_url(wildcards):
 
     return url
 
+
 BETA_SCORES = [
     "braycurtis",
     "jaccard",
     "aitchison",
     "weighted_unifrac",
-    "unweighted_unifrac"
+    "unweighted_unifrac",
 ]
 
 
@@ -78,24 +73,28 @@ rule all:
         "results/visualizations/aitchison-emperor.qzv",
         "results/visualizations/unweighted_unifrac-emperor.qzv",
         "results/visualizations/weighted_unifrac-emperor.qzv",
-        "report/latex/tables/permanova-results.tex"
+        "report/latex/tables/permanova-results.tex",
+
 
 rule permanova_to_latex:
     input:
-        expand("results/statistics/permanova/{score}-matrix-permanova.txt",
-            score=BETA_SCORES)
-    output: 
-        "report/latex/tables/permanova-results.tex"
+        expand(
+            "results/statistics/permanova/{score}-matrix-permanova.txt",
+            score=BETA_SCORES,
+        ),
+    output:
+        "report/latex/tables/permanova-results.tex",
     shell:
         """
         python3 scripts/permanova-to-latex.py {input} {output}
         """
 
+
 rule permanova_r:
     input:
-        "results/dissimilarity-matrices/{score}-matrix.tsv"
+        "results/dissimilarity-matrices/{score}-matrix.tsv",
     output:
-        "results/statistics/permanova/{score}-matrix-permanova.txt"
+        "results/statistics/permanova/{score}-matrix-permanova.txt",
     shell:
         """
         mkdir -p results/statistics/permanova
@@ -103,12 +102,13 @@ rule permanova_r:
         Rscript scripts/permanova.R {input} > {output}
         """
 
+
 rule tissue_significance:
     input:
         score="results/diversity/{file}-diversity.qza",
-        sample_metadata="data/metadata/sample-metadata.tsv"
+        sample_metadata="data/metadata/sample-metadata.tsv",
     output:
-        "results/visualizations/{file}-tissue-significance.qzv"
+        "results/visualizations/{file}-tissue-significance.qzv",
     shell:
         """
         qiime diversity beta-group-significance \
@@ -119,12 +119,13 @@ rule tissue_significance:
         --o-visualization {output}
         """
 
+
 rule emperor:
     input:
         pcoa="results/diversity/{file}-pcoa.qza",
-        sample_metadata="data/metadata/sample-metadata.tsv"
+        sample_metadata="data/metadata/sample-metadata.tsv",
     output:
-        "results/visualizations/{file}-emperor.qzv"
+        "results/visualizations/{file}-emperor.qzv",
     shell:
         """
         mkdir -p results/visualizations
@@ -135,11 +136,12 @@ rule emperor:
             --o-visualization {output}
         """
 
+
 rule pcoa:
     input:
-        "results/diversity/{file}-diversity.qza"
+        "results/diversity/{file}-diversity.qza",
     output:
-        "results/diversity/{file}-pcoa.qza"
+        "results/diversity/{file}-pcoa.qza",
     shell:
         """
         qiime diversity pcoa \
@@ -147,11 +149,12 @@ rule pcoa:
         --o-pcoa {output}
         """
 
+
 rule export_diversity_scores:
     input:
-        "results/diversity/{score}-diversity.qza"
+        "results/diversity/{score}-diversity.qza",
     output:
-        "results/dissimilarity-matrices/{score}-matrix.tsv"
+        "results/dissimilarity-matrices/{score}-matrix.tsv",
     shell:
         """
         mkdir -p results/dissimilarity-matrices
@@ -167,13 +170,14 @@ rule export_diversity_scores:
         rmdir "$tmpdir"
         """
 
+
 rule evaluate_diversity_phylogeny:
     input:
         feature_table_2500="work/qiime2/feature-table-2500.qza",
-        rooted_tree="work/qiime2/sepp-tree.qza"
+        rooted_tree="work/qiime2/sepp-tree.qza",
     output:
         unweighted_unifrac="results/diversity/unweighted_unifrac-diversity.qza",
-        weighted_unifrac="results/diversity/weighted_unifrac-diversity.qza"
+        weighted_unifrac="results/diversity/weighted_unifrac-diversity.qza",
     shell:
         """
         qiime diversity beta-phylogenetic \
@@ -189,14 +193,15 @@ rule evaluate_diversity_phylogeny:
         --o-distance-matrix {output.weighted_unifrac}
         """
 
+
 rule evaluate_diversity:
     input:
         feature_table="work/qiime2/sepp-filtered-table.qza",
-        feature_table_2500="work/qiime2/feature-table-2500.qza"
+        feature_table_2500="work/qiime2/feature-table-2500.qza",
     output:
         bray_curtis="results/diversity/braycurtis-diversity.qza",
         aitchison="results/diversity/aitchison-diversity.qza",
-        jaccard="results/diversity/jaccard-diversity.qza"
+        jaccard="results/diversity/jaccard-diversity.qza",
     shell:
         """
         mkdir -p results/diversity
@@ -217,11 +222,12 @@ rule evaluate_diversity:
             --o-distance-matrix {output.aitchison}
         """
 
+
 rule rarefy:
     input:
-        "work/qiime2/sepp-filtered-table.qza"
+        "work/qiime2/sepp-filtered-table.qza",
     output:
-        "work/qiime2/feature-table-2500.qza"
+        "work/qiime2/feature-table-2500.qza",
     shell:
         """
         qiime feature-table rarefy \
@@ -230,13 +236,14 @@ rule rarefy:
             --o-rarefied-table {output}
         """
 
+
 rule filter_sepp_features:
     input:
         table="work/qiime2/taxonomy-filtered-table.qza",
-        tree="work/qiime2/sepp-tree.qza"
+        tree="work/qiime2/sepp-tree.qza",
     output:
         filtered_table="work/qiime2/sepp-filtered-table.qza",
-        removed_table="work/qiime2/sepp-removed-table.qza"
+        removed_table="work/qiime2/sepp-removed-table.qza",
     shell:
         """
         qiime fragment-insertion filter-features \
@@ -246,15 +253,16 @@ rule filter_sepp_features:
             --o-removed-table {output.removed_table}
         """
 
+
 rule phylogeny:
     input:
         sequences="work/qiime2/asv-sequences.qza",
-        sepp_reference="resources/sepp/sepp-refs-silva-128.qza"
+        sepp_reference="resources/sepp/sepp-refs-silva-128.qza",
     output:
         tree="work/qiime2/sepp-tree.qza",
-        placements="work/qiime2/sepp-placements.qza"
+        placements="work/qiime2/sepp-placements.qza",
     log:
-        "logs/phylogeny.log"
+        "logs/phylogeny.log",
     shell:
         """
         qiime fragment-insertion sepp \
@@ -266,9 +274,10 @@ rule phylogeny:
             > {log} 2>&1
         """
 
+
 rule get_sepp_silva:
     output:
-        "resources/sepp/sepp-refs-silva-128.qza"
+        "resources/sepp/sepp-refs-silva-128.qza",
     shell:
         """
         mkdir -p resources/sepp
@@ -278,13 +287,14 @@ rule get_sepp_silva:
         "https://data.qiime2.org/classifiers/sepp-ref-dbs/sepp-refs-silva-128.qza"
         """
 
+
 rule feature_table_summarize:
     input:
         feature_table="work/qiime2/taxonomy-filtered-table.qza",
-        sample_metadata="data/metadata/sample-metadata.tsv"
+        sample_metadata="data/metadata/sample-metadata.tsv",
     output:
         dir=directory("feature-table-summarize-output-dir"),
-        summary="work/qiime2/visualizations/feature-table-summary.qzv"
+        summary="work/qiime2/visualizations/feature-table-summary.qzv",
     shell:
         """
         qiime feature-table summarize \
@@ -294,14 +304,15 @@ rule feature_table_summarize:
         --o-summary {output.summary}
         """
 
+
 rule taxonomy_visualization:
     input:
         taxonomy="work/qiime2/taxonomy.qza",
         feature_table="work/qiime2/taxonomy-filtered-table.qza",
-        sample_metadata="data/metadata/sample-metadata.tsv"
+        sample_metadata="data/metadata/sample-metadata.tsv",
     output:
         taxonomy="work/qiime2/visualizations/taxonomy.qzv",
-        taxa_barplot="work/qiime2/visualizations/taxa-barplot.qzv"
+        taxa_barplot="work/qiime2/visualizations/taxa-barplot.qzv",
     shell:
         """
         qiime metadata tabulate \
@@ -315,12 +326,13 @@ rule taxonomy_visualization:
             --o-visualization {output.taxa_barplot}
         """
 
+
 rule filter_taxonomy:
     input:
         table="work/qiime2/feature-table.qza",
-        taxonomy="work/qiime2/taxonomy.qza"
+        taxonomy="work/qiime2/taxonomy.qza",
     output:
-        "work/qiime2/taxonomy-filtered-table.qza"
+        "work/qiime2/taxonomy-filtered-table.qza",
     shell:
         """
         qiime taxa filter-table \
@@ -331,14 +343,15 @@ rule filter_taxonomy:
             --o-filtered-table {output}
         """
 
+
 rule classify_asvs:
     input:
         classifier="resources/reference/silva-128-341-805-classifier.qza",
-        sequences="work/qiime2/asv-sequences.qza"
+        sequences="work/qiime2/asv-sequences.qza",
     output:
-        "work/qiime2/taxonomy.qza"
+        "work/qiime2/taxonomy.qza",
     log:
-        "logs/classify-asvs.log"
+        "logs/classify-asvs.log",
     shell:
         """
         qiime feature-classifier classify-sklearn \
@@ -348,14 +361,15 @@ rule classify_asvs:
             > {log} 2>&1
         """
 
+
 rule train_classifier:
     input:
         sequences="resources/reference/silva-128-341-805-derep.qza",
-        taxonomy="resources/reference/silva-128-tax-derep.qza"
+        taxonomy="resources/reference/silva-128-tax-derep.qza",
     output:
-        "resources/reference/silva-128-341-805-classifier.qza"
+        "resources/reference/silva-128-341-805-classifier.qza",
     log:
-        "logs/train-classifier.log"
+        "logs/train-classifier.log",
     shell:
         """
         qiime feature-classifier fit-classifier-naive-bayes \
@@ -365,13 +379,14 @@ rule train_classifier:
             > {log} 2>&1
         """
 
+
 rule dereplicate_silva:
     input:
         sequences="resources/reference/silva-128-seqs-341-805.qza",
-        taxonomy="resources/reference/silva-128-tax-ba.qza"
+        taxonomy="resources/reference/silva-128-tax-ba.qza",
     output:
         sequences="resources/reference/silva-128-341-805-derep.qza",
-        taxonomy="resources/reference/silva-128-tax-derep.qza"
+        taxonomy="resources/reference/silva-128-tax-derep.qza",
     shell:
         """
         qiime rescript dereplicate \
@@ -382,11 +397,12 @@ rule dereplicate_silva:
             --o-dereplicated-taxa {output.taxonomy}
         """
 
+
 rule extract_341_805:
     input:
-        "resources/reference/silva-128-seqs-dna-ba-cull.qza"
+        "resources/reference/silva-128-seqs-dna-ba-cull.qza",
     output:
-        "resources/reference/silva-128-seqs-341-805.qza"
+        "resources/reference/silva-128-seqs-341-805.qza",
     shell:
         """
         qiime feature-classifier extract-reads \
@@ -397,11 +413,12 @@ rule extract_341_805:
             --o-reads {output}
         """
 
+
 rule cull_silva:
     input:
-        "resources/reference/silva-128-seqs-dna-ba.qza"
+        "resources/reference/silva-128-seqs-dna-ba.qza",
     output:
-        "resources/reference/silva-128-seqs-dna-ba-cull.qza"
+        "resources/reference/silva-128-seqs-dna-ba-cull.qza",
     shell:
         """
         qiime rescript cull-seqs \
@@ -411,12 +428,13 @@ rule cull_silva:
             --o-clean-sequences {output}
         """
 
+
 rule filter_silva_sequences:
     input:
         sequences="resources/reference/silva-128-seqs-dna.qza",
-        taxonomy="resources/reference/silva-128-tax-ba.qza"
+        taxonomy="resources/reference/silva-128-tax-ba.qza",
     output:
-        "resources/reference/silva-128-seqs-dna-ba.qza"
+        "resources/reference/silva-128-seqs-dna-ba.qza",
     shell:
         """
         qiime feature-table filter-seqs \
@@ -425,11 +443,12 @@ rule filter_silva_sequences:
             --o-filtered-data {output}
         """
 
+
 rule silva_reverse_transcribe:
     input:
-        "resources/reference/silva-128-seqs.qza"
+        "resources/reference/silva-128-seqs.qza",
     output:
-        "resources/reference/silva-128-seqs-dna.qza"
+        "resources/reference/silva-128-seqs-dna.qza",
     shell:
         """
         qiime rescript reverse-transcribe \
@@ -437,9 +456,12 @@ rule silva_reverse_transcribe:
             --o-dna-sequences {output}
         """
 
+
 rule filter_silva_taxonomy:
-    input: "resources/reference/silva-128-tax.qza"
-    output: "resources/reference/silva-128-tax-ba.qza"
+    input:
+        "resources/reference/silva-128-tax.qza",
+    output:
+        "resources/reference/silva-128-tax-ba.qza",
     shell:
         """
         qiime rescript filter-taxa \
@@ -449,11 +471,13 @@ rule filter_silva_taxonomy:
             --o-filtered-taxonomy {output}
         """
 
+
 rule get_silva:
     output:
         seqs="resources/reference/silva-128-seqs.qza",
-        tax="resources/reference/silva-128-tax.qza"
-    shell: """
+        tax="resources/reference/silva-128-tax.qza",
+    shell:
+        """
   mkdir -p resources/reference
   
   qiime rescript get-silva-data \
@@ -463,19 +487,21 @@ rule get_silva:
     --o-silva-taxonomy {output.tax}
   """
 
+
 rule denoising_visualization:
     input:
         denoising_stats="work/qiime2/dada2-stats.qza",
         feature_table="work/qiime2/feature-table.qza",
         sample_metadata="data/metadata/sample-metadata.tsv",
-        asv_sequences="work/qiime2/asv-sequences.qza"
+        asv_sequences="work/qiime2/asv-sequences.qza",
     output:
         dada2_stats_summ="work/qiime2/visualizations/dada2-stats-summ.qzv",
         feature_table_summ="work/qiime2/visualizations/feature-table-summ.qzv",
         feature_freqs="work/qiime2/feature-frequencies.qza",
         sample_freqs="work/qiime2/sample-frequencies.qza",
-        asv_sequences_summ="work/qiime2/visualizations/asv-sequences-summ.qzv"
-    shell: """
+        asv_sequences_summ="work/qiime2/visualizations/asv-sequences-summ.qzv",
+    shell:
+        """
   qiime metadata tabulate --m-input-file {input.denoising_stats} --o-visualization {output.dada2_stats_summ}
   
   qiime feature-table summarize --i-table {input.feature_table} --m-metadata-file {input.sample_metadata} --o-feature-frequencies {output.feature_freqs} --o-sample-frequencies {output.sample_freqs} --o-summary {output.feature_table_summ}
@@ -483,25 +509,32 @@ rule denoising_visualization:
   qiime feature-table tabulate-seqs --i-data {input.asv_sequences} --o-visualization {output.asv_sequences_summ}
   """
 
+
 rule denoising:
-    input: "work/qiime2/demux-paired-end-trimmed.qza"
+    input:
+        "work/qiime2/demux-paired-end-trimmed.qza",
     output:
         asv_sequences="work/qiime2/asv-sequences.qza",
         feature_table="work/qiime2/feature-table.qza",
         denoising_stats="work/qiime2/dada2-stats.qza",
         base_transition_stats="work/qiime2/base-transition-stats.qza",
     log:
-        "logs/denoising.log"
-    shell: """
+        "logs/denoising.log",
+    shell:
+        """
   qiime dada2 denoise-paired --i-demultiplexed-seqs {input} --p-trunc-len-f 265 --p-trunc-len-r 225 --p-min-overlap 30 --p-n-threads 8 --o-representative-sequences {output.asv_sequences} --o-table {output.feature_table} --o-denoising-stats {output.denoising_stats} --o-base-transition-stats {output.base_transition_stats} > {log} 2>&1
   """
 
+
 rule remove_primers:
-    input: "work/qiime2/demux-paired-end.qza"
-    output: "work/qiime2/demux-paired-end-trimmed.qza"
+    input:
+        "work/qiime2/demux-paired-end.qza",
+    output:
+        "work/qiime2/demux-paired-end-trimmed.qza",
     log:
-        "logs/remove-primers.log"
-    shell: """
+        "logs/remove-primers.log",
+    shell:
+        """
   qiime cutadapt trim-paired \
     --i-demultiplexed-sequences {input} \
     --p-cores 8 \
@@ -511,15 +544,18 @@ rule remove_primers:
     > {log} 2>&1
   """
 
+
 rule demux:
-    input: "work/metadata/manifest.tsv"
+    input:
+        "work/metadata/manifest.tsv",
     output:
         demux="work/qiime2/demux-paired-end.qza",
-        demux_summ="work/qiime2/visualizations/demux-paired-end-summary.qzv"
+        demux_summ="work/qiime2/visualizations/demux-paired-end-summary.qzv",
     log:
         import_log="logs/demux-import.log",
-        summarize_log="logs/demux-summarize.log"
-    shell: """
+        summarize_log="logs/demux-summarize.log",
+    shell:
+        """
   qiime tools import \
     --type 'SampleData[PairedEndSequencesWithQuality]' \
     --input-path {input} \
@@ -535,13 +571,15 @@ rule demux:
     > {log.summarize_log} 2>&1
   """
 
+
 rule create_manifest:
     input:
         metadata="data/metadata/sample-metadata.tsv",
-        fastq=get_all_fastq_files
+        fastq=get_all_fastq_files,
     output:
-        "work/metadata/manifest.tsv"
-    shell: """
+        "work/metadata/manifest.tsv",
+    shell:
+        """
   mkdir -p work/metadata
 
   RAW="$(realpath data/raw/fastq)"
@@ -564,12 +602,14 @@ rule create_manifest:
   }} > {output}
   """
 
+
 rule extract_metadata:
     input:
-        "work/metadata/fastq-urls.tsv"
+        "work/metadata/fastq-urls.tsv",
     output:
-        "data/metadata/sample-metadata.tsv"
-    shell: """
+        "data/metadata/sample-metadata.tsv",
+    shell:
+        """
          mkdir -p data/metadata
 
          awk -F'\t' '
@@ -587,15 +627,16 @@ rule extract_metadata:
          }}' {input} > {output}
          """
 
+
 rule download_fastq:
     output:
-        "data/raw/fastq/{accession}_{read}.fastq.gz"
+        "data/raw/fastq/{accession}_{read}.fastq.gz",
     wildcard_constraints:
-        read="[12]"
+        read="[12]",
     params:
-        url=get_fastq_url
+        url=get_fastq_url,
     log:
-        "logs/download-fastq/{accession}_{read}.log"
+        "logs/download-fastq/{accession}_{read}.log",
     shell:
         """
         mkdir -p data/raw/fastq logs/download-fastq
@@ -606,11 +647,12 @@ rule download_fastq:
         gzip -t {output} >> {log} 2>&1
         """
 
+
 checkpoint download_fastq_urls:
     output:
-        "work/metadata/fastq-urls.tsv"
+        "work/metadata/fastq-urls.tsv",
     log:
-        "logs/download-fastq-urls.log"
+        "logs/download-fastq-urls.log",
     shell:
         """
         mkdir -p work/metadata logs
@@ -620,4 +662,3 @@ checkpoint download_fastq_urls:
         curl -L --fail --retry 10 --retry-delay 5 --retry-all-errors \
             "$url" -o {output} > {log} 2>&1
         """
-
