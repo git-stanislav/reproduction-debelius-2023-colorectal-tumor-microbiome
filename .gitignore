@@ -9,3 +9,14 @@
 
 # Keep README.md
 !/README.md
+
+# Keep scripts directory
+!/scripts/
+
+# Ignore everything inside scripts
+/scripts/*
+
+# Allow only selected scripts
+!/scripts/permanova.R
+!/scripts/permanova-to-latex.py
+
