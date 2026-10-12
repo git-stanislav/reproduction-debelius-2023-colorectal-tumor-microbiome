@@ -10,6 +10,7 @@
 # Keep README.md
 !/README.md
 
+
 # Keep scripts directory
 !/scripts/
 
@@ -19,4 +20,15 @@
 # Allow only selected scripts
 !/scripts/permanova.R
 !/scripts/permanova-to-latex.py
+
+
+# Keep provenance/environment directory 
+!/provenance/
+!/provenance/environment/ 
+
+# Ignore everything inside provenance/environment
+/provenance/environment/*
+
+# Allow only selected provenance/environment
+!/provenance/environment/resolved.yml
 
