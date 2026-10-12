@@ -253,6 +253,8 @@ rule phylogeny:
     output:
         tree="work/qiime2/sepp-tree.qza",
         placements="work/qiime2/sepp-placements.qza"
+    log:
+        "logs/phylogeny.log"
     shell:
         """
         qiime fragment-insertion sepp \
@@ -260,7 +262,8 @@ rule phylogeny:
             --i-reference-database {input.sepp_reference} \
             --o-tree {output.tree} \
             --o-placements {output.placements} \
-            --p-threads 8
+            --p-threads 8 \
+            > {log} 2>&1
         """
 
 rule get_sepp_silva:
@@ -334,12 +337,15 @@ rule classify_asvs:
         sequences="work/qiime2/asv-sequences.qza"
     output:
         "work/qiime2/taxonomy.qza"
+    log:
+        "logs/classify-asvs.log"
     shell:
         """
         qiime feature-classifier classify-sklearn \
             --i-classifier {input.classifier} \
             --i-reads {input.sequences} \
-            --o-classification {output}
+            --o-classification {output} \
+            > {log} 2>&1
         """
 
 rule train_classifier:
@@ -348,12 +354,15 @@ rule train_classifier:
         taxonomy="resources/reference/silva-128-tax-derep.qza"
     output:
         "resources/reference/silva-128-341-805-classifier.qza"
+    log:
+        "logs/train-classifier.log"
     shell:
         """
         qiime feature-classifier fit-classifier-naive-bayes \
             --i-reference-reads {input.sequences} \
             --i-reference-taxonomy {input.taxonomy} \
-            --o-classifier {output}
+            --o-classifier {output} \
+            > {log} 2>&1
         """
 
 rule dereplicate_silva:
@@ -481,20 +490,25 @@ rule denoising:
         feature_table="work/qiime2/feature-table.qza",
         denoising_stats="work/qiime2/dada2-stats.qza",
         base_transition_stats="work/qiime2/base-transition-stats.qza",
+    log:
+        "logs/denoising.log"
     shell: """
-  qiime dada2 denoise-paired --i-demultiplexed-seqs {input} --p-trunc-len-f 265 --p-trunc-len-r 225 --p-min-overlap 30 --p-n-threads 8 --o-representative-sequences {output.asv_sequences} --o-table {output.feature_table} --o-denoising-stats {output.denoising_stats} --o-base-transition-stats {output.base_transition_stats}
+  qiime dada2 denoise-paired --i-demultiplexed-seqs {input} --p-trunc-len-f 265 --p-trunc-len-r 225 --p-min-overlap 30 --p-n-threads 8 --o-representative-sequences {output.asv_sequences} --o-table {output.feature_table} --o-denoising-stats {output.denoising_stats} --o-base-transition-stats {output.base_transition_stats} > {log} 2>&1
   """
 
 rule remove_primers:
     input: "work/qiime2/demux-paired-end.qza"
     output: "work/qiime2/demux-paired-end-trimmed.qza"
+    log:
+        "logs/remove-primers.log"
     shell: """
   qiime cutadapt trim-paired \
     --i-demultiplexed-sequences {input} \
     --p-cores 8 \
     --p-front-f CCTACGGGNGGCWGCAG \
     --p-front-r GGACTACHVGGGTATCTAAT \
-    --o-trimmed-sequences {output}
+    --o-trimmed-sequences {output} \
+    > {log} 2>&1
   """
 
 rule demux:
@@ -502,22 +516,23 @@ rule demux:
     output:
         demux="work/qiime2/demux-paired-end.qza",
         demux_summ="work/qiime2/visualizations/demux-paired-end-summary.qzv"
-    log: "logs/demux_summarize.log"
+    log:
+        import_log="logs/demux-import.log",
+        summarize_log="logs/demux-summarize.log"
     shell: """
   qiime tools import \
     --type 'SampleData[PairedEndSequencesWithQuality]' \
     --input-path {input} \
     --output-path {output.demux} \
-    --input-format PairedEndFastqManifestPhred33V2
-    
-  mkdir -p logs
-  
+    --input-format PairedEndFastqManifestPhred33V2 \
+    > {log.import_log} 2>&1
+     
   mkdir -p work/qiime2/visualizations
   
   qiime demux summarize \
     --i-data {output.demux} \
     --o-visualization {output.demux_summ} \
-    > {log} 2>&1
+    > {log.summarize_log} 2>&1
   """
 
 rule create_manifest:
@@ -579,24 +594,30 @@ rule download_fastq:
         read="[12]"
     params:
         url=get_fastq_url
+    log:
+        "logs/download-fastq/{accession}_{read}.log"
     shell:
         """
-        mkdir -p data/raw/fastq
+        mkdir -p data/raw/fastq logs/download-fastq
+
         curl -L --fail --retry 10 --retry-delay 5 --retry-all-errors --continue-at - \
-            -o {output} "{params.url}"
-        gzip -t {output}
+            -o {output} "{params.url} > {log} 2>&1"
+        
+        gzip -t {output} >> {log} 2>&1
         """
 
 checkpoint download_fastq_urls:
     output:
         "work/metadata/fastq-urls.tsv"
+    log:
+        "logs/download-fastq-urls.log"
     shell:
         """
-        mkdir -p work/metadata
+        mkdir -p work/metadata logs
 
         url='https://www.ebi.ac.uk/ena/portal/api/filereport?accession=PRJEB57580&result=read_run&fields=run_accession,sample_accession,sample_alias,sample_title,experiment_accession,experiment_alias,experiment_title,run_alias,library_name,instrument_model,fastq_ftp,fastq_md5,fastq_bytes'
 
         curl -L --fail --retry 10 --retry-delay 5 --retry-all-errors \
-            "$url" -o {output}
+            "$url" -o {output} > {log} 2>&1
         """
 
