@@ -263,6 +263,7 @@ rule phylogeny:
         placements="work/qiime2/sepp-placements.qza",
     log:
         "logs/phylogeny.log",
+    threads: 2
     shell:
         """
         qiime fragment-insertion sepp \
@@ -270,7 +271,8 @@ rule phylogeny:
             --i-reference-database {input.sepp_reference} \
             --o-tree {output.tree} \
             --o-placements {output.placements} \
-            --p-threads 8 \
+            --p-threads {threads} \
+            --p-debug \
             > {log} 2>&1
         """
 
