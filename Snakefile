@@ -333,6 +333,8 @@ rule filter_taxonomy:
         taxonomy="work/qiime2/taxonomy.qza",
     output:
         "work/qiime2/taxonomy-filtered-table.qza",
+    log:
+        "logs/filter-taxonomy.log",
     shell:
         """
         qiime taxa filter-table \
@@ -340,7 +342,9 @@ rule filter_taxonomy:
             --i-taxonomy {input.taxonomy} \
             --p-include "p__" \
             --p-mode contains \
-            --o-filtered-table {output}
+            --o-filtered-table {output} \
+            --verbose \
+            > {log} 2>&1
         """
 
 
