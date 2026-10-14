@@ -220,6 +220,7 @@ rule evaluate_diversity:
         qiime diversity beta \
             --i-table {input.feature_table} \
             --p-metric aitchison \
+            --p-pseudocount 1 \
             --o-distance-matrix {output.aitchison}
         """
 
