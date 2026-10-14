@@ -243,15 +243,13 @@ rule filter_sepp_features:
         table="work/qiime2/taxonomy-filtered-table.qza",
         tree="work/qiime2/sepp-tree.qza",
     output:
-        filtered_table="work/qiime2/sepp-filtered-table.qza",
-        removed_table="work/qiime2/sepp-removed-table.qza",
+        "work/qiime2/sepp-filtered-table.qza",
     shell:
         """
-        qiime fragment-insertion filter-features \
+        qiime phylogeny filter-table \
             --i-table {input.table} \
             --i-tree {input.tree} \
-            --o-filtered-table {output.filtered_table} \
-            --o-removed-table {output.removed_table}
+            --o-filtered-table {output}
         """
 
 
