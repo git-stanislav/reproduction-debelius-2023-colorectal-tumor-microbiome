@@ -92,14 +92,15 @@ rule permanova_to_latex:
 
 rule permanova_r:
     input:
-        "results/dissimilarity-matrices/{score}-matrix.tsv",
+        matrix="results/dissimilarity-matrices/{score}-matrix.tsv",
+        r_script="scripts/permanova.R", 
     output:
         "results/statistics/permanova/{score}-matrix-permanova.txt",
     shell:
         """
         mkdir -p results/statistics/permanova
 
-        Rscript scripts/permanova.R {input} > {output}
+        Rscript {input.r_script} {input.matrix} > {output}
         """
 
 

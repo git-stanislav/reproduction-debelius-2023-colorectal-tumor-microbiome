@@ -14,7 +14,7 @@ distance_file <- args[1]
 
 # Metadata
 metadata <- read.delim(
-    "sample-metadata.tsv",
+    "data/metadata/sample-metadata.tsv",
     row.names = 1,
     sep = "\t",
     comment.char = "#"
