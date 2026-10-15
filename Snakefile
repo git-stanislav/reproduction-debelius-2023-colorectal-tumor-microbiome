@@ -104,21 +104,21 @@ rule permanova_r:
         """
 
 
-rule survival_significance:
-    input:
-        score="results/diversity/{file}-diversity.qza",
-        sample_metadata="data/metadata/sample-metadata.tsv",
-    output:
-        "results/visualizations/{file}-survival-significance.qzv",
-    shell:
-        """
-        qiime diversity beta-group-significance \
-        --i-distance-matrix {input.score} \
-        --m-metadata-file {input.sample_metadata} \
-        --m-metadata-column Survival \
-        --p-method permanova \
-        --o-visualization {output}
-        """
+# rule survival_significance:
+#     input:
+#         score="results/diversity/{file}-diversity.qza",
+#         sample_metadata="data/metadata/sample-metadata.tsv",
+#     output:
+#         "results/visualizations/{file}-survival-significance.qzv",
+#     shell:
+#         """
+#         qiime diversity beta-group-significance \
+#         --i-distance-matrix {input.score} \
+#         --m-metadata-file {input.sample_metadata} \
+#         --m-metadata-column Survival \
+#         --p-method permanova \
+#         --o-visualization {output}
+#         """
 
 
 rule emperor:
