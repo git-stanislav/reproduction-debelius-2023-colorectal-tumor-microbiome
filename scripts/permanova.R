@@ -41,7 +41,7 @@ permutation_control <- how(
 
 # PERMANOVA
 result <- adonis2(
-    distance_matrix ~ Tissue,
+    distance_matrix ~ Survival,
     data = metadata,
     permutations = permutation_control
 )

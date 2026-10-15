@@ -63,11 +63,11 @@ BETA_SCORES = [
 
 rule all:
     input:
-        "results/visualizations/jaccard-tissue-significance.qzv",
-        "results/visualizations/braycurtis-tissue-significance.qzv",
-        "results/visualizations/aitchison-tissue-significance.qzv",
-        "results/visualizations/unweighted_unifrac-tissue-significance.qzv",
-        "results/visualizations/weighted_unifrac-tissue-significance.qzv",
+        "results/visualizations/jaccard-survival-significance.qzv",
+        "results/visualizations/braycurtis-survival-significance.qzv",
+        "results/visualizations/aitchison-survival-significance.qzv",
+        "results/visualizations/unweighted_unifrac-survival-significance.qzv",
+        "results/visualizations/weighted_unifrac-survival-significance.qzv",
         "results/visualizations/jaccard-emperor.qzv",
         "results/visualizations/braycurtis-emperor.qzv",
         "results/visualizations/aitchison-emperor.qzv",
@@ -104,18 +104,18 @@ rule permanova_r:
         """
 
 
-rule tissue_significance:
+rule survival_significance:
     input:
         score="results/diversity/{file}-diversity.qza",
         sample_metadata="data/metadata/sample-metadata.tsv",
     output:
-        "results/visualizations/{file}-tissue-significance.qzv",
+        "results/visualizations/{file}-survival-significance.qzv",
     shell:
         """
         qiime diversity beta-group-significance \
         --i-distance-matrix {input.score} \
         --m-metadata-file {input.sample_metadata} \
-        --m-metadata-column Tissue \
+        --m-metadata-column Survival \
         --p-method permanova \
         --o-visualization {output}
         """
