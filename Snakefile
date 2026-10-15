@@ -63,11 +63,6 @@ BETA_SCORES = [
 
 rule all:
     input:
-        "results/visualizations/jaccard-survival-significance.qzv",
-        "results/visualizations/braycurtis-survival-significance.qzv",
-        "results/visualizations/aitchison-survival-significance.qzv",
-        "results/visualizations/unweighted_unifrac-survival-significance.qzv",
-        "results/visualizations/weighted_unifrac-survival-significance.qzv",
         "results/visualizations/jaccard-emperor.qzv",
         "results/visualizations/braycurtis-emperor.qzv",
         "results/visualizations/aitchison-emperor.qzv",
