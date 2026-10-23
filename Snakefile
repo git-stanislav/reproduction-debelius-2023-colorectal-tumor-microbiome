@@ -573,60 +573,89 @@ rule demux:
   """
 
 
-rule create_manifest:
+# rule create_manifest:
+#     input:
+#         metadata="data/metadata/sample-metadata.tsv",
+#         fastq=get_all_fastq_files,
+#     output:
+#         "work/metadata/manifest.tsv",
+#     shell:
+#         """
+#   mkdir -p work/metadata
+# 
+#   RAW="$(realpath data/raw/fastq)"
+# 
+#   {{
+#     printf 'sample-id\tforward-absolute-filepath\treverse-absolute-filepath\n'
+# 
+#     tail -n +3 {input.metadata} |
+#     while IFS=$'\t' read -r sample accession patient tissue survival; do
+#         r1="$RAW/${{accession}}_1.fastq.gz"
+#         r2="$RAW/${{accession}}_2.fastq.gz"
+# 
+#         if [[ ! -f "$r1" || ! -f "$r2" ]]; then
+#             echo "ERROR: No pair of FASTQ files for $sample ($accession)" >&2
+#             exit 1
+#         fi
+# 
+#         printf '%s\t%s\t%s\n' "$sample" "$r1" "$r2"
+#     done
+#   }} > {output}
+#   """
+
+
+rule merge_metadata:
     input:
-        metadata="data/metadata/sample-metadata.tsv",
-        fastq=get_all_fastq_files,
+        py_script="scripts/merge-metadata.py",
+        fastq_urls="work/metadata/fastq-urls.tsv",
+        paired_metadata="work/metadata/paired-metadata.tsv",
     output:
-        "work/metadata/manifest.tsv",
+        sample_metadata="data/metadata/sample-metadata.tsv",
+        manifest="work/metadata/manifest.tsv",
     shell:
         """
-  mkdir -p work/metadata
-
-  RAW="$(realpath data/raw/fastq)"
-
-  {{
-    printf 'sample-id\tforward-absolute-filepath\treverse-absolute-filepath\n'
-
-    tail -n +3 {input.metadata} |
-    while IFS=$'\t' read -r sample accession patient tissue survival; do
-        r1="$RAW/${{accession}}_1.fastq.gz"
-        r2="$RAW/${{accession}}_2.fastq.gz"
-
-        if [[ ! -f "$r1" || ! -f "$r2" ]]; then
-            echo "ERROR: No pair of FASTQ files for $sample ($accession)" >&2
-            exit 1
-        fi
-
-        printf '%s\t%s\t%s\n' "$sample" "$r1" "$r2"
-    done
-  }} > {output}
-  """
+        python {input.py_script} \
+        {input.fastq_urls} {input.paired_metadata} \
+        {output.sample_metadata} {output.manifest}
+        """
 
 
-rule extract_metadata:
-    input:
-        "work/metadata/fastq-urls.tsv",
+# rule extract_metadata:
+#     input:
+#         "work/metadata/fastq-urls.tsv",
+#     output:
+#         "data/metadata/sample-metadata.tsv",
+#     shell:
+#         """
+#          mkdir -p data/metadata
+# 
+#          awk -F'\t' '
+#          BEGIN{{
+#            OFS="\t"
+#            print "SampleID\tAccession\tPatientID\tTissue\tSurvival"
+#            print "#q2:types\tcategorical\tcategorical\tcategorical\tcategorical"
+#          }} FNR>1 && !seen[$3]++ {{
+#          n=split($3, a, "_")
+#          if (n < 3) {{
+#            print "ERROR: Cannot parse sample_alias: " $3 > "/dev/stderr"
+#            exit 1
+#          }}
+#          print $3, $1, a[2], a[3], a[1]
+#          }}' {input} > {output}
+#          """
+
+
+rule download_patients_metadata:
     output:
-        "data/metadata/sample-metadata.tsv",
+        "work/metadata/paired-metadata.tsv",
     shell:
         """
-         mkdir -p data/metadata
+        mkdir -p work/metadata
 
-         awk -F'\t' '
-         BEGIN{{
-           OFS="\t"
-           print "SampleID\tAccession\tPatientID\tTissue\tSurvival"
-           print "#q2:types\tcategorical\tcategorical\tcategorical\tcategorical"
-         }} FNR>1 && !seen[$3]++ {{
-         n=split($3, a, "_")
-         if (n < 3) {{
-           print "ERROR: Cannot parse sample_alias: " $3 > "/dev/stderr"
-           exit 1
-         }}
-         print $3, $1, a[2], a[3], a[1]
-         }}' {input} > {output}
-         """
+        url='https://raw.githubusercontent.com/ctmrbio/crc-survival/resubmission_doi/ipynb/data/paired_metadata.tsv'
+
+        curl -fL "$url" -o {output}
+        """
 
 
 rule download_fastq:
@@ -663,3 +692,4 @@ checkpoint download_fastq_urls:
         curl -L --fail --retry 10 --retry-delay 5 --retry-all-errors \
             "$url" -o {output} > {log} 2>&1
         """
+

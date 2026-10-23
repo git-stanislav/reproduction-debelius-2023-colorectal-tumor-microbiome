@@ -31,16 +31,20 @@ distance_matrix <- read.delim(
 distance_matrix <- as.matrix(distance_matrix)
 
 # 4. Check for the required columns
-required_columns <- c("PatientID", "Tissue", "Survival")
+required_columns <- c("host_subject_id", "tissue_type", "long_survival")
 
 if (!all(required_columns %in% colnames(metadata))) {
-    stop("Metadata must contain PatientID, Tissue and Survival columns.")
+    stop("Metadata must contain host_subject_id, tissue_type and long_survival columns.")
 }
 
 # 5. Check sample correspondence
 if (!setequal(rownames(distance_matrix), colnames(distance_matrix))) {
     stop("Row and column sample IDs in the distance matrix do not match.")
 }
+
+
+print(rownames(distance_matrix))
+print(rownames(metadata))
 
 if (!setequal(rownames(distance_matrix), rownames(metadata))) {
     stop("Sample IDs in the distance matrix and metadata do not match.")
@@ -54,7 +58,7 @@ metadata <- metadata[
 ]
 
 # 7. Sort by patient and tissue type
-ord <- order(metadata$PatientID, metadata$Tissue)
+ord <- order(metadata$host_subject_id, metadata$tissue_type)
 
 metadata <- metadata[ord, , drop = FALSE]
 
@@ -68,24 +72,24 @@ distance_matrix <- distance_matrix[
 ]
 
 # 8. Check pair integrity
-if (anyNA(metadata$PatientID) ||
-    anyNA(metadata$Tissue) ||
-    anyNA(metadata$Survival)) {
-    stop("PatientID, Tissue and Survival must not contain missing values.")
+if (anyNA(metadata$host_subject_id) ||
+    anyNA(metadata$tissue_type) ||
+    anyNA(metadata$long_survival)) {
+    stop("host_subject_id, tissue_type and long_survival must not contain missing values.")
 }
 
-if (any(table(metadata$PatientID) != 2)) {
+if (any(table(metadata$host_subject_id) != 2)) {
     stop("Each patient must have exactly two samples.")
 }
 
 tissues <- split(
-    as.character(metadata$Tissue),
-    metadata$PatientID
+    as.character(metadata$tissue_type),
+    metadata$host_subject_id
 )
 
 valid_tissues <- vapply(
     tissues,
-    function(x) setequal(x, c("normal", "tumor")),
+    function(x) setequal(x, c("normal tissue", "tumour tissue")),
     logical(1)
 )
 
@@ -94,8 +98,8 @@ if (!all(valid_tissues)) {
 }
 
 survivals <- split(
-    as.character(metadata$Survival),
-    metadata$PatientID
+    as.character(metadata$long_survival),
+    metadata$host_subject_id
 )
 
 valid_survival <- vapply(
@@ -105,16 +109,16 @@ valid_survival <- vapply(
 )
 
 if (!all(valid_survival)) {
-    stop("Survival must be identical for both samples of each patient.")
+    stop("long_survival must be identical for both samples of each patient.")
 }
 
 # 9. Identify the indices of each patient's samples
-patients <- unique(metadata$PatientID)
+patients <- unique(metadata$host_subject_id)
 n_patients <- length(patients)
 
 pair_indices <- lapply(
     patients,
-    function(patient) which(metadata$PatientID == patient)
+    function(patient) which(metadata$host_subject_id == patient)
 )
 
 # 10. Set the random number generator
@@ -137,7 +141,7 @@ distance_matrix <- as.dist(distance_matrix)
 
 # 13. Perform PERMANOVA
 result <- adonis2(
-    distance_matrix ~ Survival,
+    distance_matrix ~ long_survival,
     data = metadata,
     permutations = permutations
 )
