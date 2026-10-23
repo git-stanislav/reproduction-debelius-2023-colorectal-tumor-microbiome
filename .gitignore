@@ -20,6 +20,7 @@
 # Allow only selected scripts
 !/scripts/permanova.R
 !/scripts/permanova-to-latex.py
+!/scripts/merge-metadata.py
 
 
 # Keep provenance/environment directory 
