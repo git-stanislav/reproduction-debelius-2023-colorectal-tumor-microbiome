@@ -68,21 +68,21 @@ rule all:
         "results/visualizations/aitchison-emperor.qzv",
         "results/visualizations/unweighted_unifrac-emperor.qzv",
         "results/visualizations/weighted_unifrac-emperor.qzv",
-        "report/latex/tables/permanova-results.tex",
+#         "report/latex/tables/permanova-results.tex",
 
 
-rule permanova_to_latex:
-    input:
-        expand(
-            "results/statistics/permanova/{score}-matrix-permanova.txt",
-            score=BETA_SCORES,
-        ),
-    output:
-        "report/latex/tables/permanova-results.tex",
-    shell:
-        """
-        python3 scripts/permanova-to-latex.py {input} {output}
-        """
+# rule permanova_to_latex:
+#     input:
+#         expand(
+#             "results/statistics/permanova/{score}-matrix-permanova.txt",
+#             score=BETA_SCORES,
+#         ),
+#     output:
+#         "report/latex/tables/permanova-results.tex",
+#     shell:
+#         """
+#         python3 scripts/permanova-to-latex.py {input} {output}
+#         """
 
 
 rule permanova_r:

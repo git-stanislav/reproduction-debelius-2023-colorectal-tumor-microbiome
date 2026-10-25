@@ -42,10 +42,6 @@ if (!setequal(rownames(distance_matrix), colnames(distance_matrix))) {
     stop("Row and column sample IDs in the distance matrix do not match.")
 }
 
-
-print(rownames(distance_matrix))
-print(rownames(metadata))
-
 if (!setequal(rownames(distance_matrix), rownames(metadata))) {
     stop("Sample IDs in the distance matrix and metadata do not match.")
 }
