@@ -63,26 +63,26 @@ BETA_SCORES = [
 
 rule all:
     input:
-        "results/visualizations/jaccard-emperor.qzv",
-        "results/visualizations/braycurtis-emperor.qzv",
-        "results/visualizations/aitchison-emperor.qzv",
-        "results/visualizations/unweighted_unifrac-emperor.qzv",
-        "results/visualizations/weighted_unifrac-emperor.qzv",
-#         "report/latex/tables/permanova-results.tex",
+        expand("results/visualizations/{score}-emperor.qzv", score=BETA_SCORES),
+        expand("results/statistics/permanova/{score}-permanova.txt", score=BETA_SCORES),
+        expand("results/statistics/logit/{score}-crude-logit-summary.txt", score=BETA_SCORES),
+        expand("results/statistics/logit/{score}-full-logit-summary.txt", score=BETA_SCORES),
 
 
-# rule permanova_to_latex:
-#     input:
-#         expand(
-#             "results/statistics/permanova/{score}-matrix-permanova.txt",
-#             score=BETA_SCORES,
-#         ),
-#     output:
-#         "report/latex/tables/permanova-results.tex",
-#     shell:
-#         """
-#         python3 scripts/permanova-to-latex.py {input} {output}
-#         """
+rule logit:
+    input:
+        py_script="scripts/logit.py",
+        matrix="results/dissimilarity-matrices/{score}-matrix.tsv",
+        sample_metadata="data/metadata/sample-metadata.tsv",
+    output:
+        crude_model_summary="results/statistics/logit/{score}-crude-logit-summary.txt",
+        full_model_summary="results/statistics/logit/{score}-full-logit-summary.txt",
+    shell:
+        """
+        mkdir -p results/statistics/logit
+
+        python {input.py_script} {input.matrix} {input.sample_metadata} {output.crude_model_summary} {output.full_model_summary}
+        """
 
 
 rule permanova_r:
@@ -90,30 +90,13 @@ rule permanova_r:
         matrix="results/dissimilarity-matrices/{score}-matrix.tsv",
         r_script="scripts/permanova.R", 
     output:
-        "results/statistics/permanova/{score}-matrix-permanova.txt",
+        "results/statistics/permanova/{score}-permanova.txt",
     shell:
         """
         mkdir -p results/statistics/permanova
 
         Rscript {input.r_script} {input.matrix} > {output}
         """
-
-
-# rule survival_significance:
-#     input:
-#         score="results/diversity/{file}-diversity.qza",
-#         sample_metadata="data/metadata/sample-metadata.tsv",
-#     output:
-#         "results/visualizations/{file}-survival-significance.qzv",
-#     shell:
-#         """
-#         qiime diversity beta-group-significance \
-#         --i-distance-matrix {input.score} \
-#         --m-metadata-file {input.sample_metadata} \
-#         --m-metadata-column Survival \
-#         --p-method permanova \
-#         --o-visualization {output}
-#         """
 
 
 rule emperor:
@@ -573,37 +556,6 @@ rule demux:
   """
 
 
-# rule create_manifest:
-#     input:
-#         metadata="data/metadata/sample-metadata.tsv",
-#         fastq=get_all_fastq_files,
-#     output:
-#         "work/metadata/manifest.tsv",
-#     shell:
-#         """
-#   mkdir -p work/metadata
-# 
-#   RAW="$(realpath data/raw/fastq)"
-# 
-#   {{
-#     printf 'sample-id\tforward-absolute-filepath\treverse-absolute-filepath\n'
-# 
-#     tail -n +3 {input.metadata} |
-#     while IFS=$'\t' read -r sample accession patient tissue survival; do
-#         r1="$RAW/${{accession}}_1.fastq.gz"
-#         r2="$RAW/${{accession}}_2.fastq.gz"
-# 
-#         if [[ ! -f "$r1" || ! -f "$r2" ]]; then
-#             echo "ERROR: No pair of FASTQ files for $sample ($accession)" >&2
-#             exit 1
-#         fi
-# 
-#         printf '%s\t%s\t%s\n' "$sample" "$r1" "$r2"
-#     done
-#   }} > {output}
-#   """
-
-
 rule merge_metadata:
     input:
         py_script="scripts/merge-metadata.py",
@@ -618,31 +570,6 @@ rule merge_metadata:
         {input.fastq_urls} {input.paired_metadata} \
         {output.sample_metadata} {output.manifest}
         """
-
-
-# rule extract_metadata:
-#     input:
-#         "work/metadata/fastq-urls.tsv",
-#     output:
-#         "data/metadata/sample-metadata.tsv",
-#     shell:
-#         """
-#          mkdir -p data/metadata
-# 
-#          awk -F'\t' '
-#          BEGIN{{
-#            OFS="\t"
-#            print "SampleID\tAccession\tPatientID\tTissue\tSurvival"
-#            print "#q2:types\tcategorical\tcategorical\tcategorical\tcategorical"
-#          }} FNR>1 && !seen[$3]++ {{
-#          n=split($3, a, "_")
-#          if (n < 3) {{
-#            print "ERROR: Cannot parse sample_alias: " $3 > "/dev/stderr"
-#            exit 1
-#          }}
-#          print $3, $1, a[2], a[3], a[1]
-#          }}' {input} > {output}
-#          """
 
 
 rule download_patients_metadata:

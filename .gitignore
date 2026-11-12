@@ -18,6 +18,7 @@
 /scripts/*
 
 # Allow only selected scripts
+!/scripts/logit.py
 !/scripts/permanova.R
 !/scripts/merge-metadata.py
 
